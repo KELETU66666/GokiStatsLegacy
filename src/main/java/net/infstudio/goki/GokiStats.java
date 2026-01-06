@@ -1,105 +1,75 @@
 package net.infstudio.goki;
 
-import net.infstudio.goki.api.capability.CapabilityStat;
-import net.infstudio.goki.api.stat.StatBase;
-import net.infstudio.goki.api.stat.Stats;
-import net.infstudio.goki.common.CommonProxy;
-import net.infstudio.goki.common.StatsCommand;
-import net.infstudio.goki.common.adapters.StatFix;
-import net.infstudio.goki.common.config.ConfigManager;
-import net.infstudio.goki.common.config.Configurable;
-import net.infstudio.goki.common.config.GokiConfig;
-import net.infstudio.goki.common.loot.conditions.LevelCondition;
-import net.infstudio.goki.common.utils.Reference;
+import net.infstudio.goki.client.gui.GuiHandler;
+import net.infstudio.goki.handler.*;
+import net.infstudio.goki.lib.Reference;
+import net.infstudio.goki.stats.Stat;
 import net.minecraft.command.ICommandManager;
 import net.minecraft.command.ServerCommandManager;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.datafix.FixTypes;
-import net.minecraft.world.storage.loot.conditions.LootConditionManager;
-import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.common.network.NetworkRegistry;
 
-import java.io.IOException;
-import java.nio.file.Files;
-
-@Mod(modid = Reference.MODID, useMetadata = true, updateJSON = "https://infinitystudio.github.io/Updates/gokistats.json")
+@Mod(modid = Reference.MODID, name = Reference.MOD_NAME, version = "1.0.0")
 public class GokiStats {
+    public static final PacketPipeline packetPipeline = new PacketPipeline();
     @Mod.Instance(Reference.MODID)
     public static GokiStats instance;
-
-    @SidedProxy(clientSide = "net.infstudio.goki.client.ClientProxy", serverSide = "net.infstudio.goki.common.CommonProxy")
+    @SidedProxy(clientSide = "net.infstudio.goki.client.ClientProxy", serverSide = "net.infstudio.goki.CommonProxy")
     public static CommonProxy proxy;
 
-    // Keep this same with FMLPreInitializationEvent.getModLog()
-    public static final Logger log = LogManager.getLogger(Reference.MODID);
-
-    private static final Class<?>[] loadClasses = {
-            Stats.class
-    };
-
     @Mod.EventHandler
-    public void construct(FMLConstructionEvent event) {
-        try {
-            for (Class<?> clz : loadClasses)
-                Class.forName(clz.getName());
-        } catch (ClassNotFoundException e) {
-            log.warn("Cannot load classes, this may cause some issues", e);
+    public void preInit(final FMLPreInitializationEvent event) {
+        GokiStats.instance = this;
+        (Reference.configuration = new Configuration(event.getSuggestedConfigurationFile())).load();
+        if (!Reference.configuration.get("Version", "Configuration Version", "v1").getString().equals("v1")) {
+            System.err.println("gokiStats configuration file has changed! May cause errors! Delete the configuration file and relaunch.");
         }
+        Stat.loadOptions(Reference.configuration);
+        Stat.loadAllStatsFromConfiguration(Reference.configuration);
+        GokiStats.proxy.registerKeybinding();
+        GokiStats.proxy.registerHandlers();
     }
 
     @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent event) {
-        instance = this;
+    public void init(final FMLInitializationEvent event) {
+        GokiStats.packetPipeline.initialise();
+        GokiStats.packetPipeline.registerPacket(PacketStatSync.class);
+        GokiStats.packetPipeline.registerPacket(PacketStatAlter.class);
+        GokiStats.packetPipeline.registerPacket(PacketSyncXP.class);
+        GokiStats.packetPipeline.registerPacket(PacketSyncStatConfig.class);
+        MinecraftForge.EVENT_BUS.register(new Events());
+        NetworkRegistry.INSTANCE.registerGuiHandler(this, new GuiHandler());
+        FMLCommonHandler.instance().bus().register(new TickHandler());
+    }
 
-        if (GokiConfig.version.equals("v2")) { // Skip v2
-            try {
-                Files.deleteIfExists(event.getModConfigurationDirectory().toPath().resolve(Reference.MODID + "_v2.cfg"));
-                Files.list(event.getModConfigurationDirectory().toPath().resolve(Reference.MODID)).forEach(path -> {
-                    try {
-                        Files.deleteIfExists(path);
-                    } catch (IOException e) {
-                        log.warn("Unable to remove v2 config files", e);
-                    }
-                });
-                Files.deleteIfExists(event.getModConfigurationDirectory().toPath().resolve(Reference.MODID));
-                net.minecraftforge.common.config.ConfigManager.sync(Reference.MODID, Config.Type.INSTANCE);
-            } catch (IOException e) {
-                log.warn("Unable to remove v2 config files", e);
-            }
+    @Mod.EventHandler
+    public void postInit(final FMLPostInitializationEvent event) {
+        GokiStats.packetPipeline.postInitialise();
+        if (Loader.isModLoaded("PlayerAPI")) {
+            Reference.isPlayerAPILoaded = true;
+            Stat.STAT_ATHLETICISM.enabled = false;
+            Stat.STAT_CLIMBING.enabled = false;
         }
-
-        LootConditionManager.registerCondition(new LevelCondition.Serializer(new ResourceLocation(Reference.MODID, "min_level"), LevelCondition.class));
-
-        CapabilityStat.register();
-
-        new ConfigManager(event.getModConfigurationDirectory().toPath().resolve(Reference.MODID));
-        StatBase.stats.forEach(Configurable::reloadConfig);
+        Stat.saveAllStatsToConfiguration(Reference.configuration);
+        Stat.saveGlobalMultipliers(Reference.configuration);
+        Reference.configuration.save();
     }
 
     @Mod.EventHandler
-    public void init(FMLInitializationEvent event) {
-        proxy.registerHandlers();
-        FMLCommonHandler.instance().getDataFixer().registerVanillaWalker(FixTypes.PLAYER, new StatFix());
-    }
-
-    @Mod.EventHandler
-    public void loadComplete(FMLLoadCompleteEvent event) {
-        StatBase.stats.forEach(StatBase::reloadConfig);
-        ConfigManager.INSTANCE.reloadConfig();
-    }
-
-    @Mod.EventHandler
-    public void serverStart(FMLServerStartingEvent event) {
-        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
-        ICommandManager command = server.getCommandManager();
-        ServerCommandManager serverCommand = (ServerCommandManager) command;
+    public void serverStart(final FMLServerStartingEvent event) {
+        final MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
+        final ICommandManager command = server.getCommandManager();
+        final ServerCommandManager serverCommand = (ServerCommandManager) command;
         serverCommand.registerCommand(new StatsCommand());
-        // TODO notice it's a reversion
     }
 }

@@ -1,35 +1,35 @@
 {
-    "gokistats:critical" : {
-        "category": "master",
-        "sounds": [
-            "gokistats_legacy:critical1",
-            "gokistats_legacy:critical2",
-			"gokistats_legacy:critical3",
-			"gokistats_legacy:critical4"
-        ]
-    },
-	"gokistats:magician" : {
-        "category": "blocks",
-        "sounds": [
-            "gokistats_legacy:magician1",
-            "gokistats_legacy:magician2",
-			"gokistats_legacy:magician3"
-        ]
-    },
-	"gokistats:reaper" : {
-        "category": "master",
-        "sounds": [
-            "gokistats_legacy:reaper1",
-            "gokistats_legacy:reaper2",
-			"gokistats_legacy:reaper3"
-        ]
-    },
-	"gokistats:treasure" : {
-        "category": "blocks",
-        "sounds": [
-            "gokistats_legacy:treasure1",
-            "gokistats_legacy:treasure2",
-			"gokistats_legacy:treasure3"
-        ]
-    }
+  "gokistats:critical": {
+    "category": "master",
+    "sounds": [
+      "gokistats_legacy:critical1",
+      "gokistats_legacy:critical2",
+      "gokistats_legacy:critical3",
+      "gokistats_legacy:critical4"
+    ]
+  },
+  "gokistats_legacy:magician": {
+    "category": "blocks",
+    "sounds": [
+      "gokistats_legacy:magician1",
+      "gokistats_legacy:magician2",
+      "gokistats_legacy:magician3"
+    ]
+  },
+  "gokistats_legacy:reaper": {
+    "category": "master",
+    "sounds": [
+      "gokistats_legacy:reaper1",
+      "gokistats_legacy:reaper2",
+      "gokistats_legacy:reaper3"
+    ]
+  },
+  "gokistats_legacy:treasure": {
+    "category": "blocks",
+    "sounds": [
+      "gokistats_legacy:treasure1",
+      "gokistats_legacy:treasure2",
+      "gokistats_legacy:treasure3"
+    ]
+  }
 }

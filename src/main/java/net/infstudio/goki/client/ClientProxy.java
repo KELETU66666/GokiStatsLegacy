@@ -1,19 +1,17 @@
 package net.infstudio.goki.client;
 
-import net.infstudio.goki.common.CommonProxy;
-import net.infstudio.goki.common.config.GokiConfig;
-import net.minecraftforge.common.MinecraftForge;
+import net.infstudio.goki.CommonProxy;
+import net.infstudio.goki.handler.GokiKeyHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 
 public class ClientProxy extends CommonProxy {
+    @Override
     public void registerKeybinding() {
-        GokiKeyHandler keyHandler = new GokiKeyHandler();
-        MinecraftForge.EVENT_BUS.register(keyHandler);
+        final GokiKeyHandler keyHandler = new GokiKeyHandler();
+        FMLCommonHandler.instance().bus().register(keyHandler);
     }
 
     @Override
-    public void registerHandlers() {
-        super.registerHandlers();
-        if (GokiConfig.keyBindingEnabled)
-            registerKeybinding();
+    public void registerSounds() {
     }
 }
