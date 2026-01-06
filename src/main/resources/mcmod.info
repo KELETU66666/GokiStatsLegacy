@@ -7,7 +7,7 @@
   "mcversion": "${mcversion}",
   "url": "https://minecraft.curseforge.com/projects/gokistats",
   "updateUrl": "https://minecraft.curseforge.com/projects/gokistats/files",
-  "authorList": ["Lasm_Gratel", "NekoCaffeine"],
+  "authorList": ["Lasm_Gratel", "NekoCaffeine", "keletu"],
   "credits": "gokiStats",
   "logoFile": "logo.png",
   "screenshots": [],
